@@ -38,7 +38,7 @@ shapes = [
 
 
 # On windows use 'cls' instead of 'clear'
-def clear_console(): return os.system('clear')
+def clear_console(): return os.system('cls')
 
 
 def rotate_block(clockwise, block):
