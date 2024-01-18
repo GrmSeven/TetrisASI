@@ -13,6 +13,7 @@ class Tetris:
         self.tetromino_position = [0, 0]
         # Ticking
         self.timer = time.time()
+        self.tick = 0
         self.is_next_tick = True
         # Game state
         self.state = "Running"  # Or paused
@@ -20,6 +21,7 @@ class Tetris:
     def update_timer(self, delta):
         if time.time() - self.timer >= delta:
             self.timer = time.time()
+            self.tick += 1
             self.is_next_tick = True
         else:
             self.is_next_tick = False
@@ -111,9 +113,7 @@ if __name__ == "__main__":
             game.render()
             game.print_debug()
             game.render_tetromino(0)
-            game.move_tetromino('R')
             if not game.move_tetromino('D'):
                 game.render_tetromino(1)
                 game.decide_next_tetromino()
-
-        game.update_timer(0.05)
+        game.update_timer(0.5)
