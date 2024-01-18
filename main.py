@@ -43,9 +43,27 @@ class Tetris:
             for x, cell in enumerate(row):
                 if cell != 0:
                     self.matrix[self.tetromino_position[1] + y][self.tetromino_position[0] + x] = cell_type
-        
+
+    def move_tetromino(self, direction):
+        move_vector = {'L': [-1, 0], 'R': [1, 0], 'D': [0, 1]}
+        for y, row in enumerate(self.curr_tetromino):
+            for x, cell in enumerate(row):
+                if cell != 0:
+                    matrix_x = self.tetromino_position[0] + x + move_vector[direction][0]
+                    matrix_y = self.tetromino_position[1] + y + move_vector[direction][1]
+                    is_outside = (matrix_x not in range(0, self.size[0])) or \
+                                 (matrix_y not in range(0, self.size[1]))
+                    if is_outside:
+                        return False
+                    is_not_empty = self.matrix[matrix_y][matrix_x] != 0
+                    if is_not_empty:
+                        return False
+        self.tetromino_position[0] += move_vector[direction][0]
+        self.tetromino_position[1] += move_vector[direction][1]
+        return True
+
     def render(self):
-        cell_icon = ["  ", "[]"]
+        cell_icon = ["__", "[]", "{}", "()"]
         self.clear_console()
         for y, row in enumerate(game.matrix):
             for x, cell in enumerate(row):
@@ -89,9 +107,13 @@ if __name__ == "__main__":
     game.decide_next_tetromino()
     while True:  # Game loop
         if game.is_next_tick:
-            game.render_tetromino(1)
+            game.render_tetromino(2)
             game.render()
             game.print_debug()
             game.render_tetromino(0)
-            game.tetromino_position[1] += 1
-        game.update_timer(1)
+            game.move_tetromino('R')
+            if not game.move_tetromino('D'):
+                game.render_tetromino(1)
+                game.decide_next_tetromino()
+
+        game.update_timer(0.05)
