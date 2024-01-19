@@ -40,28 +40,56 @@ class Tetris:
         self.curr_tetromino = random.choices([i[0] for i in game.shapes], [i[1] for i in game.shapes], k=1)[0]
         self.tetromino_position = [(self.size[0] // 2) - (len(self.curr_tetromino) // 2), 0]
 
-    def render_tetromino(self, cell_type):
+    def draw_tetromino(self, cell_type):
+        game.print_debug()
         for y, row in enumerate(self.curr_tetromino):
             for x, cell in enumerate(row):
-                if cell != 0:
+                if cell != 0:  # It maybe needs to be removed
                     self.matrix[self.tetromino_position[1] + y][self.tetromino_position[0] + x] = cell_type
+
+    def check_collision(self, pos, mat):
+        for y, row in enumerate(mat):
+            for x, cell in enumerate(row):
+                if cell != 0:
+                    matrix_x, matrix_y = pos[0] + x, pos[1] + y
+                    if (matrix_x not in range(0, self.size[0])) or (matrix_y not in range(0, self.size[1])):
+                        return True
+                    if self.matrix[matrix_y][matrix_x] != 0:
+                        return True
+        return False
 
     def move_tetromino(self, direction):
         move_vector = {'L': [-1, 0], 'R': [1, 0], 'D': [0, 1]}
-        for y, row in enumerate(self.curr_tetromino):
-            for x, cell in enumerate(row):
-                if cell != 0:
-                    matrix_x = self.tetromino_position[0] + x + move_vector[direction][0]
-                    matrix_y = self.tetromino_position[1] + y + move_vector[direction][1]
-                    is_outside = (matrix_x not in range(0, self.size[0])) or \
-                                 (matrix_y not in range(0, self.size[1]))
-                    if is_outside:
-                        return False
-                    is_not_empty = self.matrix[matrix_y][matrix_x] != 0
-                    if is_not_empty:
-                        return False
+        new_pos = [self.tetromino_position[i] + move_vector[direction][i] for i in range(2)]
+        if self.check_collision(new_pos, self.curr_tetromino):
+            return False
         self.tetromino_position[0] += move_vector[direction][0]
         self.tetromino_position[1] += move_vector[direction][1]
+        return True
+
+    def rotate_tetromino(self, n):
+        size = len(self.curr_tetromino)
+        new_mat = self.curr_tetromino.copy() # copy?
+        for _ in range(n):
+            for i in range(size):
+                j = 0
+                k = size - 1
+                while j < k:
+                    t = new_mat[j][i]
+                    new_mat[j][i] = new_mat[k][i]
+                    new_mat[k][i] = t
+                    j += 1
+                    k -= 1
+
+            for i in range(size):
+                for j in range(i, size):
+                    t = new_mat[i][j]
+                    new_mat[i][j] = new_mat[j][i]
+                    new_mat[j][i] = t
+
+        if self.check_collision(self.tetromino_position, new_mat):
+            return False
+        self.curr_tetromino = new_mat.copy() #  copy?
         return True
 
     def render(self):
@@ -109,11 +137,11 @@ if __name__ == "__main__":
     game.decide_next_tetromino()
     while True:  # Game loop
         if game.is_next_tick:
-            game.render_tetromino(2)
+            # game.rotate_tetromino(1)
+            game.draw_tetromino(2)
             game.render()
-            game.print_debug()
-            game.render_tetromino(0)
+            game.draw_tetromino(0)
             if not game.move_tetromino('D'):
-                game.render_tetromino(1)
+                game.draw_tetromino(1)
                 game.decide_next_tetromino()
-        game.update_timer(0.5)
+        game.update_timer(0.1)
