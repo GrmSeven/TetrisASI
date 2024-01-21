@@ -1,6 +1,7 @@
 import os
 import time
 import random
+from copy import deepcopy
 
 class Tetris:
     def __init__(self, size):
@@ -8,7 +9,7 @@ class Tetris:
         self.shapes = []
         self.size = size
         # Yes
-        self.matrix = [[0] * size[0] for i in range(size[1])]
+        self.matrix = [[0] * (size[0]) for i in range(size[1])]
         self.curr_tetromino = []
         self.tetromino_position = [0, 0]
         # Ticking
@@ -41,11 +42,11 @@ class Tetris:
         self.tetromino_position = [(self.size[0] // 2) - (len(self.curr_tetromino) // 2), 0]
 
     def draw_tetromino(self, cell_type):
-        game.print_debug()
         for y, row in enumerate(self.curr_tetromino):
             for x, cell in enumerate(row):
-                if cell != 0:  # It maybe needs to be removed
+                if cell != 0:
                     self.matrix[self.tetromino_position[1] + y][self.tetromino_position[0] + x] = cell_type
+
 
     def check_collision(self, pos, mat):
         for y, row in enumerate(mat):
@@ -69,7 +70,7 @@ class Tetris:
 
     def rotate_tetromino(self, n):
         size = len(self.curr_tetromino)
-        new_mat = self.curr_tetromino.copy() # copy?
+        new_mat = deepcopy(self.curr_tetromino)
         for _ in range(n):
             for i in range(size):
                 j = 0
@@ -89,7 +90,7 @@ class Tetris:
 
         if self.check_collision(self.tetromino_position, new_mat):
             return False
-        self.curr_tetromino = new_mat.copy() #  copy?
+        self.curr_tetromino = deepcopy(new_mat)
         return True
 
     def render(self):
@@ -135,13 +136,18 @@ if __name__ == "__main__":
         game.add_new_shape(*tetromino)
 
     game.decide_next_tetromino()
+    game.rotate_tetromino(1)
     while True:  # Game loop
         if game.is_next_tick:
-            # game.rotate_tetromino(1)
+            game.rotate_tetromino(1)
             game.draw_tetromino(2)
+            game.print_debug()
+
             game.render()
             game.draw_tetromino(0)
             if not game.move_tetromino('D'):
                 game.draw_tetromino(1)
                 game.decide_next_tetromino()
+                if game.check_collision(game.tetromino_position, game.curr_tetromino):
+                    break
         game.update_timer(0.1)
