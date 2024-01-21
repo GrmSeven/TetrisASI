@@ -2,6 +2,7 @@ import os
 import time
 import random
 from copy import deepcopy
+from pytimedinput import timedInput
 
 
 class Tetris:
@@ -19,6 +20,8 @@ class Tetris:
         self.is_next_tick = True
         # Game state
         self.state = "Running"  # Or paused
+
+        self.move_vector = None  # [-1, 0]
 
     def update_timer(self, delta):
         if time.time() - self.timer >= delta:
@@ -67,8 +70,10 @@ class Tetris:
 
     def move_tetromino(self, direction):
         move_vector = {'L': [-1, 0], 'R': [1, 0], 'D': [0, 1]}
+
         new_pos = [self.tetromino_position[i] +
                    move_vector[direction][i] for i in range(2)]
+
         if self.check_collision(new_pos, self.curr_tetromino):
             return False
         self.tetromino_position[0] += move_vector[direction][0]
@@ -147,7 +152,7 @@ if __name__ == "__main__":
     game.rotate_tetromino(1)
     while True:  # Game loop
         if game.is_next_tick:
-            game.rotate_tetromino(1)
+            # game.rotate_tetromino(1)
             game.draw_tetromino(2)
             game.print_debug()
 
@@ -158,4 +163,11 @@ if __name__ == "__main__":
                 game.decide_next_tetromino()
                 if game.check_collision(game.tetromino_position, game.curr_tetromino):
                     break
+
+        # get the user input, RUN it in a Powershell/CMD/Terminal window
+        command, _ = timedInput("", timeout=0.05)
+        match command:
+            case 'w': game.rotate_tetromino(1)
+            # make cases for left/right/downward movement as well
+
         game.update_timer(0.1)
