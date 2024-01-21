@@ -3,6 +3,7 @@ import time
 import random
 from copy import deepcopy
 
+
 class Tetris:
     def __init__(self, size):
         # Constants
@@ -35,18 +36,23 @@ class Tetris:
         return self.shapes.pop(index)
 
     def clear_console(self):
-        os.system('cls')
+        if os.name == 'posix':
+            os.system('clear')
+        else:
+            os.system('cls')
 
     def decide_next_tetromino(self):
-        self.curr_tetromino = random.choices([i[0] for i in game.shapes], [i[1] for i in game.shapes], k=1)[0]
-        self.tetromino_position = [(self.size[0] // 2) - (len(self.curr_tetromino) // 2), 0]
+        self.curr_tetromino = random.choices([i[0] for i in game.shapes], [
+                                             i[1] for i in game.shapes], k=1)[0]
+        self.tetromino_position = [
+            (self.size[0] // 2) - (len(self.curr_tetromino) // 2), 0]
 
     def draw_tetromino(self, cell_type):
         for y, row in enumerate(self.curr_tetromino):
             for x, cell in enumerate(row):
                 if cell != 0:
-                    self.matrix[self.tetromino_position[1] + y][self.tetromino_position[0] + x] = cell_type
-
+                    self.matrix[self.tetromino_position[1] +
+                                y][self.tetromino_position[0] + x] = cell_type
 
     def check_collision(self, pos, mat):
         for y, row in enumerate(mat):
@@ -61,7 +67,8 @@ class Tetris:
 
     def move_tetromino(self, direction):
         move_vector = {'L': [-1, 0], 'R': [1, 0], 'D': [0, 1]}
-        new_pos = [self.tetromino_position[i] + move_vector[direction][i] for i in range(2)]
+        new_pos = [self.tetromino_position[i] +
+                   move_vector[direction][i] for i in range(2)]
         if self.check_collision(new_pos, self.curr_tetromino):
             return False
         self.tetromino_position[0] += move_vector[direction][0]
@@ -105,6 +112,7 @@ class Tetris:
         print(self.curr_tetromino)
         print(self.tetromino_position)
 
+
 if __name__ == "__main__":
     game = Tetris([10, 20])
     timer = 0
@@ -114,7 +122,7 @@ if __name__ == "__main__":
           [0, 1, 0]], 1],
         [[[0, 0, 0],
           [0, 1, 1],
-          [0, 1, 0]],1],
+          [0, 1, 0]], 1],
         [[[0, 0, 0],
           [1, 1, 1],
           [1, 1, 1]], 1],
