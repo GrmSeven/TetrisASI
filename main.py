@@ -165,9 +165,11 @@ if __name__ == "__main__":
                     break
 
         # get the user input, RUN it in a Powershell/CMD/Terminal window
-        command, _ = timedInput("", timeout=0.05)
+        command, _ = timedInput("", timeout=0.1)
         match command:
             case 'w': game.rotate_tetromino(1)
-            # make cases for left/right/downward movement as well
+            case "a": game.move_tetromino("L")
+            case "d": game.move_tetromino("R")
+            case "s": game.move_tetromino("D")
 
-        game.update_timer(0.1)
+        game.update_timer(0.2)
