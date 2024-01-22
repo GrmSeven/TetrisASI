@@ -2,8 +2,9 @@ import os
 import time
 import random
 from copy import deepcopy
-from pytimedinput import timedInput
-
+import tkinter
+from tkinter import Canvas
+import keyboard
 
 class Tetris:
     def __init__(self, size):
@@ -12,6 +13,7 @@ class Tetris:
         self.size = size
         # Yes
         self.matrix = [[0] * (size[0]) for i in range(size[1])]
+        self.prev_matrix = deepcopy(self.matrix)
         self.curr_tetromino = []
         self.tetromino_position = [0, 0]
         # Ticking
@@ -54,8 +56,7 @@ class Tetris:
         for y, row in enumerate(self.curr_tetromino):
             for x, cell in enumerate(row):
                 if cell != 0:
-                    self.matrix[self.tetromino_position[1] +
-                                y][self.tetromino_position[0] + x] = cell_type
+                    self.matrix[self.tetromino_position[1] + y][self.tetromino_position[0] + x] = cell_type
 
     def check_collision(self, pos, mat):
         for y, row in enumerate(mat):
@@ -105,13 +106,18 @@ class Tetris:
         self.curr_tetromino = deepcopy(new_mat)
         return True
 
-    def render(self):
-        cell_icon = ["__", "[]", "{}", "()"]
+    def draw_square(self, x, y, color, size=40):
+        canvas.create_rectangle(x*size, y*size, x*size+size, y*size+size, fill=color, outline="")
+
+    def render(self, render_all=False):
+        cell_icon = ["#000000", "#00ffff", "#0000ff", "#00ff00"]
         self.clear_console()
-        for y, row in enumerate(game.matrix):
+        for y, row in enumerate(self.matrix):
             for x, cell in enumerate(row):
-                print(cell_icon[cell], end="")
-            print("\n", end="")
+                if render_all or self.matrix[y][x] != self.prev_matrix[y][x]:
+                    self.draw_square(x, y, cell_icon[cell])
+        canvas.update()
+        self.prev_matrix = deepcopy(self.matrix)
 
     def print_debug(self):
         print(self.curr_tetromino)
@@ -119,8 +125,14 @@ class Tetris:
 
 
 if __name__ == "__main__":
+    # Tkinter canvas
+    root = tkinter.Tk()
+    canvas = Canvas(root)
+    canvas.pack()
+    canvas.config(width=400, height=800)
+
+    # Tetris initialisation
     game = Tetris([10, 20])
-    timer = 0
     initial_tetrominos = [
         [[[0, 1, 0],
           [1, 1, 1],
@@ -149,27 +161,22 @@ if __name__ == "__main__":
         game.add_new_shape(*tetromino)
 
     game.decide_next_tetromino()
-    game.rotate_tetromino(1)
+    game.render(True)
+
+    keyboard.add_hotkey("a", lambda: game.move_tetromino("L"))
+    keyboard.add_hotkey("d", lambda: game.move_tetromino("R"))
+    keyboard.add_hotkey("s", lambda: game.move_tetromino("D"))
+    keyboard.add_hotkey("e", lambda: game.rotate_tetromino(1))
+    keyboard.add_hotkey("q", lambda: game.rotate_tetromino(3))
+
     while True:  # Game loop
         if game.is_next_tick:
-            # game.rotate_tetromino(1)
-            game.draw_tetromino(2)
-            game.print_debug()
-
-            game.render()
-            game.draw_tetromino(0)
             if not game.move_tetromino('D'):
                 game.draw_tetromino(1)
                 game.decide_next_tetromino()
                 if game.check_collision(game.tetromino_position, game.curr_tetromino):
                     break
-
-        # get the user input, RUN it in a Powershell/CMD/Terminal window
-        command, _ = timedInput("", timeout=0.1)
-        match command:
-            case 'w': game.rotate_tetromino(1)
-            case "a": game.move_tetromino("L")
-            case "d": game.move_tetromino("R")
-            case "s": game.move_tetromino("D")
-
-        game.update_timer(0.2)
+            game.draw_tetromino(2)
+            game.render()
+            game.draw_tetromino(0)
+        game.update_timer(0.5)
