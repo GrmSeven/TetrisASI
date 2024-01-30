@@ -47,10 +47,8 @@ class Tetris:
             os.system('cls')
 
     def decide_next_tetromino(self):
-        self.curr_tetromino = random.choices([i[0] for i in game.shapes], [
-                                             i[1] for i in game.shapes], k=1)[0]
-        self.tetromino_position = [
-            (self.size[0] // 2) - (len(self.curr_tetromino) // 2), 0]
+        self.curr_tetromino = random.choices([i[0] for i in game.shapes], [i[1] for i in game.shapes], k=1)[0]
+        self.tetromino_position = [(self.size[0] // 2) - (len(self.curr_tetromino) // 2), 0]
 
     def draw_tetromino(self, cell_type):
         for y, row in enumerate(self.curr_tetromino):
@@ -72,8 +70,7 @@ class Tetris:
     def move_tetromino(self, direction):
         move_vector = {'L': [-1, 0], 'R': [1, 0], 'D': [0, 1]}
 
-        new_pos = [self.tetromino_position[i] +
-                   move_vector[direction][i] for i in range(2)]
+        new_pos = [self.tetromino_position[i] + move_vector[direction][i] for i in range(2)]
 
         if self.check_collision(new_pos, self.curr_tetromino):
             return False
@@ -162,21 +159,34 @@ if __name__ == "__main__":
 
     game.decide_next_tetromino()
     game.render(True)
+    inputs = []
+    input_add = lambda x: inputs.append(x)
+    input_commands = {"a": lambda: game.move_tetromino("L"),
+                      "d": lambda: game.move_tetromino("R"),
+                      "s": lambda: game.move_tetromino("D"),
+                      "e": lambda: game.rotate_tetromino(1),
+                      "q": lambda: game.rotate_tetromino(3)}
 
-    keyboard.add_hotkey("a", lambda: game.move_tetromino("L"))
-    keyboard.add_hotkey("d", lambda: game.move_tetromino("R"))
-    keyboard.add_hotkey("s", lambda: game.move_tetromino("D"))
-    keyboard.add_hotkey("e", lambda: game.rotate_tetromino(1))
-    keyboard.add_hotkey("q", lambda: game.rotate_tetromino(3))
+    keyboard.add_hotkey("a", lambda: input_add("a"))
+    keyboard.add_hotkey("d", lambda: input_add("d"))
+    keyboard.add_hotkey("s", lambda: input_add("s"))
+    keyboard.add_hotkey("e", lambda: input_add("e"))
+    keyboard.add_hotkey("q", lambda: input_add("q"))
 
     while True:  # Game loop
+        if len(inputs) != 0:
+            print(inputs)
+            for i in inputs:
+                input_commands[i]()
+            inputs.clear()
+            game.draw_tetromino(2)
+            game.render()
+            game.draw_tetromino(0)
         if game.is_next_tick:
             if not game.move_tetromino('D'):
                 game.draw_tetromino(1)
                 game.decide_next_tetromino()
                 if game.check_collision(game.tetromino_position, game.curr_tetromino):
                     break
-            game.draw_tetromino(2)
-            game.render()
-            game.draw_tetromino(0)
+            game.dratromino(0)
         game.update_timer(0.5)
