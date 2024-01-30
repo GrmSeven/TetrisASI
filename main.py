@@ -120,7 +120,6 @@ class Tetris:
         print(self.curr_tetromino)
         print(self.tetromino_position)
 
-
 if __name__ == "__main__":
     # Tkinter canvas
     root = tkinter.Tk()
@@ -159,26 +158,24 @@ if __name__ == "__main__":
 
     game.decide_next_tetromino()
     game.render(True)
-    inputs = []
-    input_add = lambda x: inputs.append(x)
+
+    next_input = ""
+    def input_add(x):
+        next_input = x
+        print(next_input)
+
+    for i in ['a', 'd', 's', 'e', 'q']:
+        keyboard.add_hotkey(i, lambda: input_add(i))
     input_commands = {"a": lambda: game.move_tetromino("L"),
                       "d": lambda: game.move_tetromino("R"),
                       "s": lambda: game.move_tetromino("D"),
                       "e": lambda: game.rotate_tetromino(1),
                       "q": lambda: game.rotate_tetromino(3)}
 
-    keyboard.add_hotkey("a", lambda: input_add("a"))
-    keyboard.add_hotkey("d", lambda: input_add("d"))
-    keyboard.add_hotkey("s", lambda: input_add("s"))
-    keyboard.add_hotkey("e", lambda: input_add("e"))
-    keyboard.add_hotkey("q", lambda: input_add("q"))
-
     while True:  # Game loop
-        if len(inputs) != 0:
-            print(inputs)
-            for i in inputs:
-                input_commands[i]()
-            inputs.clear()
+        if next_input != "":
+            input_commands[next_input]()
+            next_input = ""
             game.draw_tetromino(2)
             game.render()
             game.draw_tetromino(0)
