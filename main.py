@@ -159,23 +159,26 @@ if __name__ == "__main__":
     game.decide_next_tetromino()
     game.render(True)
 
-    next_input = ""
     def input_add(x):
+        global next_input
         next_input = x
-        print(next_input)
 
-    for i in ['a', 'd', 's', 'e', 'q']:
-        keyboard.add_hotkey(i, lambda: input_add(i))
-    input_commands = {"a": lambda: game.move_tetromino("L"),
-                      "d": lambda: game.move_tetromino("R"),
-                      "s": lambda: game.move_tetromino("D"),
-                      "e": lambda: game.rotate_tetromino(1),
-                      "q": lambda: game.rotate_tetromino(3)}
+    keyboard.add_hotkey('a', lambda: input_add('a'))
+    keyboard.add_hotkey('d', lambda: input_add('d'))
+    keyboard.add_hotkey('s', lambda: input_add('s'))
+    keyboard.add_hotkey('e', lambda: input_add('e'))
+    keyboard.add_hotkey('q', lambda: input_add('q'))
+    input_commands = {'a': lambda: game.move_tetromino("L"),
+                      'd': lambda: game.move_tetromino("R"),
+                      's': lambda: game.move_tetromino("D"),
+                      'e': lambda: game.rotate_tetromino(1),
+                      'q': lambda: game.rotate_tetromino(3)}
 
+    input_add("")
     while True:  # Game loop
         if next_input != "":
             input_commands[next_input]()
-            next_input = ""
+            next_input = ""q
             game.draw_tetromino(2)
             game.render()
             game.draw_tetromino(0)
