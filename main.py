@@ -188,5 +188,7 @@ if __name__ == "__main__":
                 game.decide_next_tetromino()
                 if game.check_collision(game.tetromino_position, game.curr_tetromino):
                     break
-            game.dratromino(0)
+            game.draw_tetromino(2)
+            game.render()
+            game.draw_tetromino(0)
         game.update_timer(0.5)
