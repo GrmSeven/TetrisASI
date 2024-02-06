@@ -21,6 +21,7 @@ class Tetris:
         self.tick = 0
         self.is_next_tick = True
         # Game state
+        self.score = 0
         self.state = "Running"  # Or paused
 
         self.move_vector = None  # [-1, 0]
@@ -33,8 +34,8 @@ class Tetris:
         else:
             self.is_next_tick = False
 
-    def add_new_shape(self, matrix, rarity):
-        self.shapes.append([matrix, rarity])
+    def add_new_shape(self, *params):
+        self.shapes.append([*params])
         return len(self.shapes) - 1
 
     def forgor_new_shape(self, index):
@@ -103,6 +104,17 @@ class Tetris:
         self.curr_tetromino = deepcopy(new_mat)
         return True
 
+    def check_row(self):
+        checked_range = range(max(self.tetromino_position[1], 0),
+                              min(self.tetromino_position[1] + len(self.curr_tetromino), self.size[1]))
+        print(list(checked_range))
+        for row in checked_range:
+            if all(self.matrix[row]):
+                self.matrix.insert(0, [0] * self.size[0])
+                self.matrix.pop(row + 1)
+                self.score += 1
+
+
     def draw_square(self, x, y, color, size=40):
         canvas.create_rectangle(x*size, y*size, x*size+size, y*size+size, fill=color, outline="")
 
@@ -132,26 +144,26 @@ if __name__ == "__main__":
     initial_tetrominos = [
         [[[0, 1, 0],
           [1, 1, 1],
-          [0, 1, 0]], 1],
+          [0, 1, 0]], 0],
         [[[0, 0, 0],
           [0, 1, 1],
-          [0, 1, 0]], 1],
+          [0, 1, 0]], 0],
         [[[0, 0, 0],
           [1, 1, 1],
           [1, 1, 1]], 1],
         [[[0, 1, 0],
           [1, 1, 1],
-          [1, 0, 0]], 1],
+          [1, 0, 0]], 0],
         [[[0, 0, 1, 0],
           [0, 0, 1, 0],
           [0, 0, 1, 0],
           [0, 0, 1, 0]], 1],
         [[[1, 1, 0],
           [0, 1, 0],
-          [1, 1, 1]], 1],
+          [1, 1, 1]], 0],
         [[[1, 1, 1],
           [1, 0, 1],
-          [0, 0, 0]], 1]
+          [0, 0, 0]], 0]
     ]
     for tetromino in initial_tetrominos:
         game.add_new_shape(*tetromino)
@@ -159,32 +171,33 @@ if __name__ == "__main__":
     game.decide_next_tetromino()
     game.render(True)
 
-    def input_add(x):
+    def input_set(x):
         global next_input
         next_input = x
 
-    keyboard.add_hotkey('a', lambda: input_add('a'))
-    keyboard.add_hotkey('d', lambda: input_add('d'))
-    keyboard.add_hotkey('s', lambda: input_add('s'))
-    keyboard.add_hotkey('e', lambda: input_add('e'))
-    keyboard.add_hotkey('q', lambda: input_add('q'))
+    keyboard.add_hotkey('a', lambda: input_set('a'))
+    keyboard.add_hotkey('d', lambda: input_set('d'))
+    keyboard.add_hotkey('s', lambda: input_set('s'))
+    keyboard.add_hotkey('e', lambda: input_set('e'))
+    keyboard.add_hotkey('q', lambda: input_set('q'))
     input_commands = {'a': lambda: game.move_tetromino("L"),
                       'd': lambda: game.move_tetromino("R"),
                       's': lambda: game.move_tetromino("D"),
                       'e': lambda: game.rotate_tetromino(1),
                       'q': lambda: game.rotate_tetromino(3)}
 
-    input_add("")
+    input_set("")
     while True:  # Game loop
         if next_input != "":
             input_commands[next_input]()
-            next_input = ""q
+            next_input = ""
             game.draw_tetromino(2)
             game.render()
             game.draw_tetromino(0)
         if game.is_next_tick:
             if not game.move_tetromino('D'):
                 game.draw_tetromino(1)
+                game.check_row()
                 game.decide_next_tetromino()
                 if game.check_collision(game.tetromino_position, game.curr_tetromino):
                     break
