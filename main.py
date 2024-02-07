@@ -19,7 +19,7 @@ class Tetris:
         # Constants
         self.shapes = []
         self.size = [10, 20]
-        self.square_size = 40
+        self.square_size = 48
         # Yes
         self.matrix = [[0] * (self.size[0]) for i in range(self.size[1])]
         self.prev_matrix = deepcopy(self.matrix)
@@ -169,7 +169,19 @@ class Tetris:
 
     def draw_square(self, x, y, color):
         s = self.square_size
-        canvas.create_rectangle(x*s, y*s, x*s+s, y*s+s, fill=color, outline="")
+        if color == "#000000":
+            canvas.create_rectangle(x * s, y * s, x * s + s, y * s + s, fill=color, outline="")
+        else:
+            coords = [([0, 0, 0.25, 0.25, 0.75, 0.25, 1, 0], 70),  # Top
+                      ([0, 1, 0.25, 0.75, 0.75, 0.75, 1, 1], -50),  # Bottom
+                      ([1, 1, 0.75, 0.75, 0.75, 0.25, 1, 0], -30),  # Right
+                      ([0, 1, 0.25, 0.75, 0.25, 0.25, 0, 0], 35),  # Left
+                      ([0.25, 0.75, 0.25, 0.25, 0.75, 0.25, 0.75, 0.75], 0)]  # Middle
+            for poly, saturation in coords:
+                shade = hex_to_rgb(color)
+                shade = (clamp(i + saturation, 0, 255) for i in shade)
+                shade = rgb_to_hex(shade)
+                canvas.create_polygon([(v + (x if i%2==0 else y))*s for i, v in enumerate(poly)], outline='', fill=shade)
 
     def render(self, render_all=False):
         cell_icon = ["#000000", "#64c9d3", "#445aa5", "#ecae35", "#eae742", "#5fbc52", "#8c5da5", "#e94138"]
@@ -183,15 +195,26 @@ class Tetris:
 
     def show_score(self):
         s = self.square_size
-        canvas.create_rectangle(1*s, 6*s, 8*s+s, 11*s+s, fill="#f74f43", outline="")
-        canvas.create_text(200, 320, text=f"Game Over\n  Score:", font=("Terminal", 40, "bold"))
-        canvas.create_text(200, 420, text=self.score, font=("Terminal", 40, "bold"), anchor=tkinter.CENTER)
-        canvas.create_rectangle(200-110, 530-30, 200+110, 530+30, fill="#000000", outline="")
-        canvas.create_text(200, 530, text="Press  Space\n to restart", font=("Terminal", 20, "bold"), fill="#ffffff", anchor=tkinter.CENTER)
+        canvas.create_rectangle(5*s-150, 10*s-90, 5*s+150, 10*s+90, fill="#f74f43", outline="")
+        canvas.create_text(5*s, 10*s-30, text=f"Game Over\n  Score:", font=("Terminal", 30, "bold"))
+        canvas.create_text(5*s, 10*s+50, text=self.score, font=("Terminal", 30, "bold"), anchor=tkinter.CENTER)
+        canvas.create_rectangle(5*s-120, 14*s-30, 5*s+120, 14*s+30, fill="#000000", outline="")
+        canvas.create_text(5*s, 14*s, text="Press  Space\n to restart", font=("Terminal", 20, "bold"), fill="#ffffff", anchor=tkinter.CENTER)
 
     def print_debug(self):
         print(self.curr_tetromino)
         print(self.tetromino_position)
+
+def clamp(value, mn, mx):
+    return max(mn, min(mx, value))
+
+def hex_to_rgb(hex):
+    h = hex.lstrip('#')
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+def rgb_to_hex(a):
+    r, g, b = a
+    return '#{:02x}{:02x}{:02x}'.format(r, g, b)
 
 def create_game():
     global game
@@ -206,7 +229,6 @@ if __name__ == "__main__":
     root = tkinter.Tk()
     canvas = Canvas(root)
     canvas.pack()
-    canvas.config(width=400, height=800)
 
     # Tetris initialisation
     initial_tetrominos = [
@@ -240,6 +262,7 @@ if __name__ == "__main__":
           [0, 0, 0]], 1, 4]    #
     ]
     create_game()
+    canvas.config(width=game.size[0] * game.square_size, height=game.size[1] * game.square_size)
 
     def input_set(x):
         global next_input
