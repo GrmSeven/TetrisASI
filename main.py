@@ -1,3 +1,11 @@
+'''
+Info
+A & D for moving sideways
+S for mucing down
+Q & E for rotating
+W for dropping
+'''
+
 import os
 import time
 import random
@@ -7,31 +15,48 @@ from tkinter import Canvas
 import keyboard
 
 class Tetris:
-    def __init__(self, size):
+    def __init__(self):
         # Constants
         self.shapes = []
-        self.size = size
+        self.size = [10, 20]
+        self.square_size = 40
         # Yes
-        self.matrix = [[0] * (size[0]) for i in range(size[1])]
+        self.matrix = [[0] * (self.size[0]) for i in range(self.size[1])]
         self.prev_matrix = deepcopy(self.matrix)
         self.curr_tetromino = []
         self.tetromino_position = [0, 0]
+        self.curr_color = 1
         # Ticking
         self.timer = time.time()
         self.tick = 0
         self.is_next_tick = True
         # Game state
+        self.skip_next_frame = False
         self.score = 0
-        self.state = "Running"  # Or paused
-
+        self.state = 1
         self.move_vector = None  # [-1, 0]
 
+    def pause(self):
+        self.state = 0
+
+    def unpause(self):
+        self.state = 1
+
+    def exit(self):
+        self.state = -1
+
     def update_timer(self, delta):
-        if time.time() - self.timer >= delta:
-            self.timer = time.time()
-            self.tick += 1
-            self.is_next_tick = True
-        else:
+        if self.state == 1:
+            if time.time() - self.timer >= delta:
+                self.timer = time.time()
+                self.tick += 1
+                if self.skip_next_frame:
+                    self.skip_next_frame = False
+                else:
+                    self.is_next_tick = True
+            else:
+                self.is_next_tick = False
+        if self.state == 0:
             self.is_next_tick = False
 
     def add_new_shape(self, *params):
@@ -48,14 +73,16 @@ class Tetris:
             os.system('cls')
 
     def decide_next_tetromino(self):
-        self.curr_tetromino = random.choices([i[0] for i in game.shapes], [i[1] for i in game.shapes], k=1)[0]
+        tetremino_params = random.choices(game.shapes, [i[1] for i in game.shapes], k=1)[0]
+        self.curr_tetromino = tetremino_params[0]
+        self.curr_color = tetremino_params[2]
         self.tetromino_position = [(self.size[0] // 2) - (len(self.curr_tetromino) // 2), 0]
 
-    def draw_tetromino(self, cell_type):
+    def draw_tetromino(self, delete=False):
         for y, row in enumerate(self.curr_tetromino):
             for x, cell in enumerate(row):
                 if cell != 0:
-                    self.matrix[self.tetromino_position[1] + y][self.tetromino_position[0] + x] = cell_type
+                    self.matrix[self.tetromino_position[1] + y][self.tetromino_position[0] + x] = 0 if delete else self.curr_color
 
     def check_collision(self, pos, mat):
         for y, row in enumerate(mat):
@@ -78,6 +105,11 @@ class Tetris:
         self.tetromino_position[0] += move_vector[direction][0]
         self.tetromino_position[1] += move_vector[direction][1]
         return True
+
+    def drop_tetromino(self):
+        while self.move_tetromino('D'):
+            self.skip_next_frame = True
+            pass
 
     def rotate_tetromino(self, n):
         size = len(self.curr_tetromino)
@@ -107,19 +139,19 @@ class Tetris:
     def check_row(self):
         checked_range = range(max(self.tetromino_position[1], 0),
                               min(self.tetromino_position[1] + len(self.curr_tetromino), self.size[1]))
-        print(list(checked_range))
         for row in checked_range:
             if all(self.matrix[row]):
                 self.matrix.insert(0, [0] * self.size[0])
                 self.matrix.pop(row + 1)
-                self.score += 1
+                self.score += 100
 
 
-    def draw_square(self, x, y, color, size=40):
-        canvas.create_rectangle(x*size, y*size, x*size+size, y*size+size, fill=color, outline="")
+    def draw_square(self, x, y, color):
+        s = self.square_size
+        canvas.create_rectangle(x*s, y*s, x*s+s, y*s+s, fill=color, outline="")
 
     def render(self, render_all=False):
-        cell_icon = ["#000000", "#00ffff", "#0000ff", "#00ff00"]
+        cell_icon = ["#000000", "#64c9d3", "#445aa5", "#ecae35", "#eae742", "#5fbc52", "#8c5da5", "#e94138"]
         self.clear_console()
         for y, row in enumerate(self.matrix):
             for x, cell in enumerate(row):
@@ -127,6 +159,12 @@ class Tetris:
                     self.draw_square(x, y, cell_icon[cell])
         canvas.update()
         self.prev_matrix = deepcopy(self.matrix)
+
+    def show_score(self):
+        s = self.square_size
+        canvas.create_rectangle(1*s, 6*s, 8*s+s, 11*s+s, fill="#f74f43", outline="")
+        canvas.create_text(200, 320, text=f"Game Over\n  Score:", font=("Terminal", 40, "bold"))
+        canvas.create_text(200, 420, text=self.score, font=("Terminal", 40, "bold"), anchor=tkinter.CENTER)
 
     def print_debug(self):
         print(self.curr_tetromino)
@@ -140,30 +178,36 @@ if __name__ == "__main__":
     canvas.config(width=400, height=800)
 
     # Tetris initialisation
-    game = Tetris([10, 20])
+    game = Tetris()
     initial_tetrominos = [
-        [[[0, 1, 0],
-          [1, 1, 1],
-          [0, 1, 0]], 0],
-        [[[0, 0, 0],
-          [0, 1, 1],
-          [0, 1, 0]], 0],
-        [[[0, 0, 0],
-          [1, 1, 1],
-          [1, 1, 1]], 1],
-        [[[0, 1, 0],
-          [1, 1, 1],
-          [1, 0, 0]], 0],
-        [[[0, 0, 1, 0],
-          [0, 0, 1, 0],
-          [0, 0, 1, 0],
-          [0, 0, 1, 0]], 1],
-        [[[1, 1, 0],
-          [0, 1, 0],
-          [1, 1, 1]], 0],
-        [[[1, 1, 1],
-          [1, 0, 1],
-          [0, 0, 0]], 0]
+        [[[0, 1, 0],           #   |*|
+          [1, 1, 1],           # |*|*|*|
+          [0, 1, 0]], 0.8, 6], #   |*|
+
+        [[[0, 0, 0],           #
+          [1, 1, 0],           # |*|*|
+          [0, 1, 0]], 1.1, 5], #   |*|
+
+        [[[0, 0, 0],           #
+          [1, 1, 1],           # |*|*|*|
+          [1, 1, 1]], 1, 7],   # |*|*|*|
+
+        [[[0, 1, 0],           #   |*|
+          [1, 1, 1],           # |*|*|*|
+          [1, 0, 0]], 1, 3],   # |*|
+
+        [[[0, 1, 0, 0],        #   |*|
+          [0, 1, 0, 0],        #   |*|
+          [0, 1, 0, 0],        #   |*|
+          [0, 1, 0, 0]], 1, 1],#   |*|
+
+        [[[1, 1, 0],           # |*|*|
+          [0, 1, 0],           #   |*|
+          [1, 1, 1]], 0.8, 2], # |*|*|*|
+
+        [[[1, 1, 1],           # |*|*|*|
+          [1, 0, 1],           # |*| |*|
+          [0, 0, 0]], 1, 4]    #
     ]
     for tetromino in initial_tetrominos:
         game.add_new_shape(*tetromino)
@@ -180,28 +224,34 @@ if __name__ == "__main__":
     keyboard.add_hotkey('s', lambda: input_set('s'))
     keyboard.add_hotkey('e', lambda: input_set('e'))
     keyboard.add_hotkey('q', lambda: input_set('q'))
+    keyboard.add_hotkey('w', lambda: input_set('w'))
     input_commands = {'a': lambda: game.move_tetromino("L"),
                       'd': lambda: game.move_tetromino("R"),
                       's': lambda: game.move_tetromino("D"),
                       'e': lambda: game.rotate_tetromino(1),
-                      'q': lambda: game.rotate_tetromino(3)}
+                      'q': lambda: game.rotate_tetromino(3),
+                      'w': lambda: game.drop_tetromino()}
 
     input_set("")
     while True:  # Game loop
         if next_input != "":
             input_commands[next_input]()
             next_input = ""
-            game.draw_tetromino(2)
+            game.draw_tetromino()
             game.render()
-            game.draw_tetromino(0)
+            game.draw_tetromino(True)
         if game.is_next_tick:
             if not game.move_tetromino('D'):
-                game.draw_tetromino(1)
+                game.draw_tetromino()
                 game.check_row()
                 game.decide_next_tetromino()
                 if game.check_collision(game.tetromino_position, game.curr_tetromino):
-                    break
-            game.draw_tetromino(2)
+                    game.show_score()
+                    game.exit()
+            game.draw_tetromino()
             game.render()
-            game.draw_tetromino(0)
+            game.draw_tetromino(True)
         game.update_timer(0.5)
+        if game.state == -1:
+            break
+    root.mainloop()
