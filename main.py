@@ -1,9 +1,9 @@
 '''
 Info
-A & D for moving sideways
-S for mucing down
-Q & E for rotating
-W for dropping
+A & D - liikuda külgsuunas
+S     - liikuda alla 1 võrra
+Q & E - pöörelda
+W     - liikuda alla
 '''
 
 import os
@@ -16,197 +16,187 @@ import keyboard
 
 class Tetris:
     def __init__(self):
-        # Constants
-        self.shapes = []
-        self.size = [10, 20]
-        self.square_size = 48
-        # Yes
-        self.matrix = [[0] * (self.size[0]) for i in range(self.size[1])]
-        self.prev_matrix = deepcopy(self.matrix)
-        self.curr_tetromino = []
-        self.tetromino_position = [0, 0]
-        self.curr_color = 1
-        # Ticking
-        self.timer = time.time()
+        # Konstandid
+        self.tetrominod = []
+        self.suurus = [10, 20]
+        self.ruut_suurus = 48
+
+        # Mäng
+        self.maatriks = [[0] * (self.suurus[0]) for i in range(self.suurus[1])]
+        self.eelmine_maatriks = deepcopy(self.maatriks)
+        self.praegune_tetromino = []
+        self.tetromino_positsioon = [0, 0]
+        self.praegune_varv = 1
+
+        # Taimer
+        self.taimer = time.time()
         self.tick = 0
-        self.is_next_tick = True
-        # Game state
-        self.skip_next_frame = False
-        self.score = 0
-        self.state = 1
-        self.move_vector = None  # [-1, 0]
+        self.on_jargmine_tick = True
 
-    def pause(self):
-        self.state = 0
+        # Mängu olek
+        self.jata_vahele = False  # Jääb vahele 1 tick
+        self.skoor = 0
+        self.olek = 1  # 1 - töötab; 0 - pausinud; 3 - lahku välja
+        self.suuna_vektor = None
 
-    def unpause(self):
-        self.state = 1
+    # Peatab mängu
+    def peata(self):
+        self.olek = 0
 
-    def exit(self):
-        self.state = -1
+    # Jätkab mängu
+    def jatka(self):
+        self.olek = 1
 
-    def reset(self):
-        # Constants
-        self.shapes = []
-        self.size = [10, 20]
-        self.square_size = 40
-        # Yes
-        self.matrix = [[0] * (self.size[0]) for i in range(self.size[1])]
-        self.prev_matrix = deepcopy(self.matrix)
-        self.curr_tetromino = []
-        self.tetromino_position = [0, 0]
-        self.curr_color = 1
-        # Ticking
-        self.timer = time.time()
-        self.tick = 0
-        self.is_next_tick = True
-        # Game state
-        self.skip_next_frame = False
-        self.score = 0
-        self.state = 1
-        self.move_vector = None  # [-1, 0]
+    # Paneb mängu kinni
+    def valja(self):
+        self.olek = -1
 
-    def update_timer(self, delta):
-        if self.state == 1:
-            if time.time() - self.timer >= delta:
-                self.timer = time.time()
+    # Kontrollib tick-i kiirus
+    def uuenda_taimer(self, delta):
+        if self.olek == 1:
+            if time.time() - self.taimer >= delta:
+                self.taimer = time.time()
                 self.tick += 1
-                if self.skip_next_frame:
-                    self.skip_next_frame = False
+                if self.jata_vahele:
+                    self.jata_vahele = False
                 else:
-                    self.is_next_tick = True
+                    self.on_jargmine_tick = True
             else:
-                self.is_next_tick = False
-        if self.state == 0:
-            self.is_next_tick = False
+                self.on_jargmine_tick = False
+        if self.olek == 0:
+            self.on_jargmine_tick = False
 
-    def add_new_shape(self, *params):
-        self.shapes.append([*params])
-        return len(self.shapes) - 1
+    # Salvestab tetrominod [kujund, tõenäosus, värv]
+    def lisa_uus_kuju(self, *parameetrid):
+        self.tetrominod.append([*parameetrid])
+        return len(self.tetrominod) - 1
 
-    def forgor_new_shape(self, index):
-        return self.shapes.pop(index)
+    # Kustutab tetromino mälust
+    def unusta_kuju(self, index):
+        return self.tetrominod.pop(index)
 
-    def clear_console(self):
-        if os.name == 'posix':
-            os.system('clear')
-        else:
-            os.system('cls')
+    # Valib järgmine kujund, nende tõenäosuse järgi
+    def otsustada_jargmine_tetromino(self):
+        tetremino_parameetrid = random.choices(tetris.tetrominod, [i[1] for i in tetris.tetrominod], k=1)[0]
+        self.praegune_tetromino = tetremino_parameetrid[0]
+        self.praegune_varv = tetremino_parameetrid[2]
+        self.tetromino_positsioon = [(self.suurus[0] // 2) - (len(self.praegune_tetromino) // 2), 0]
 
-    def decide_next_tetromino(self):
-        tetremino_params = random.choices(game.shapes, [i[1] for i in game.shapes], k=1)[0]
-        self.curr_tetromino = tetremino_params[0]
-        self.curr_color = tetremino_params[2]
-        self.tetromino_position = [(self.size[0] // 2) - (len(self.curr_tetromino) // 2), 0]
+    # Salvestab tetromino matriksile, kasutades positsioon, värv ja teised parameetrid
+    def kuva_tetromino(self, kustuta=False):
+        for y, row in enumerate(self.praegune_tetromino):
+            for x, piksel in enumerate(row):
+                if piksel != 0:
+                    self.maatriks[self.tetromino_positsioon[1] + y][self.tetromino_positsioon[0] + x] = 0 if kustuta else self.praegune_varv
 
-    def draw_tetromino(self, delete=False):
-        for y, row in enumerate(self.curr_tetromino):
-            for x, cell in enumerate(row):
-                if cell != 0:
-                    self.matrix[self.tetromino_position[1] + y][self.tetromino_position[0] + x] = 0 if delete else self.curr_color
-
-    def check_collision(self, pos, mat):
+    # Vaatab kas praegune kujund põrkub milleliga matriksil
+    def kontrolli_kokkuporget(self, pos, mat):
         for y, row in enumerate(mat):
-            for x, cell in enumerate(row):
-                if cell != 0:
-                    matrix_x, matrix_y = pos[0] + x, pos[1] + y
-                    if (matrix_x not in range(0, self.size[0])) or (matrix_y not in range(0, self.size[1])):
+            for x, piksel in enumerate(row):
+                if piksel != 0:
+                    maatriks_x, maatriks_y = pos[0] + x, pos[1] + y
+                    if (maatriks_x not in range(0, self.suurus[0])) or (maatriks_y not in range(0, self.suurus[1])):
                         return True
-                    if self.matrix[matrix_y][matrix_x] != 0:
+                    if self.maatriks[maatriks_y][maatriks_x] != 0:
                         return True
         return False
 
-    def move_tetromino(self, direction):
-        move_vector = {'L': [-1, 0], 'R': [1, 0], 'D': [0, 1]}
+    # Liigub selle vasakule, paremale või alla
+    def liigu_tetromino(self, direction):
+        suuna_vektor = {'L': [-1, 0], 'R': [1, 0], 'D': [0, 1]}
 
-        new_pos = [self.tetromino_position[i] + move_vector[direction][i] for i in range(2)]
+        uus_pos = [self.tetromino_positsioon[i] + suuna_vektor[direction][i] for i in range(2)]
 
-        if self.check_collision(new_pos, self.curr_tetromino):
+        if self.kontrolli_kokkuporget(uus_pos, self.praegune_tetromino):
             return False
-        self.tetromino_position[0] += move_vector[direction][0]
-        self.tetromino_position[1] += move_vector[direction][1]
+        self.tetromino_positsioon[0] += suuna_vektor[direction][0]
+        self.tetromino_positsioon[1] += suuna_vektor[direction][1]
         return True
 
-    def drop_tetromino(self):
-        while self.move_tetromino('D'):
-            self.skip_next_frame = True
+    # Liigub alla kuni kokkupõrkeni
+    def lange_tetromino(self):
+        while self.liigu_tetromino('D'):
+            self.jata_vahele = True
             pass
 
-    def rotate_tetromino(self, n):
-        size = len(self.curr_tetromino)
-        new_mat = deepcopy(self.curr_tetromino)
+    # Pöörab kujundi matriksi päripäeva n korda (optimeeritud viis)
+    def poora_tetromino(self, n):
+        suurus = len(self.praegune_tetromino)
+        uus_mat = deepcopy(self.praegune_tetromino)
         for _ in range(n):
-            for i in range(size):
+            for i in range(suurus):
                 j = 0
-                k = size - 1
+                k = suurus - 1
                 while j < k:
-                    t = new_mat[j][i]
-                    new_mat[j][i] = new_mat[k][i]
-                    new_mat[k][i] = t
+                    t = uus_mat[j][i]
+                    uus_mat[j][i] = uus_mat[k][i]
+                    uus_mat[k][i] = t
                     j += 1
                     k -= 1
 
-            for i in range(size):
-                for j in range(i, size):
-                    t = new_mat[i][j]
-                    new_mat[i][j] = new_mat[j][i]
-                    new_mat[j][i] = t
+            for i in range(suurus):
+                for j in range(i, suurus):
+                    t = uus_mat[i][j]
+                    uus_mat[i][j] = uus_mat[j][i]
+                    uus_mat[j][i] = t
 
-        if self.check_collision(self.tetromino_position, new_mat):
+        if self.kontrolli_kokkuporget(self.tetromino_positsioon, uus_mat):
             return False
-        self.curr_tetromino = deepcopy(new_mat)
+        self.praegune_tetromino = deepcopy(uus_mat)
         return True
 
-    def check_row(self):
-        checked_range = range(max(self.tetromino_position[1], 0),
-                              min(self.tetromino_position[1] + len(self.curr_tetromino), self.size[1]))
-        for row in checked_range:
-            if all(self.matrix[row]):
-                self.matrix.insert(0, [0] * self.size[0])
-                self.matrix.pop(row + 1)
-                self.score += 100
+    # Vaatab kas ridas kõik plokid on täidetud
+    def kontrolli_rida(self):
+        kontrollitud_vahemik = range(max(self.tetromino_positsioon[1], 0),
+                              min(self.tetromino_positsioon[1] + len(self.praegune_tetromino), self.suurus[1]))
+        for row in kontrollitud_vahemik:
+            if all(self.maatriks[row]):
+                self.maatriks.insert(0, [0] * self.suurus[0])
+                self.maatriks.pop(row + 1)
+                self.skoor += 100
 
-
-    def draw_square(self, x, y, color):
-        s = self.square_size
-        if color == "#000000":
-            canvas.create_rectangle(x * s, y * s, x * s + s, y * s + s, fill=color, outline="")
+    # Joonistab tahvlil 2d ruutu
+    def draw_ruut(self, x, y, varv):
+        s = self.ruut_suurus
+        if varv == "#000000":
+            tahvel.create_rectangle(x * s, y * s, x * s + s, y * s + s, fill=varv, outline="")
         else:
-            coords = [([0, 0, 0.25, 0.25, 0.75, 0.25, 1, 0], 70),  # Top
-                      ([0, 1, 0.25, 0.75, 0.75, 0.75, 1, 1], -50),  # Bottom
-                      ([1, 1, 0.75, 0.75, 0.75, 0.25, 1, 0], -30),  # Right
-                      ([0, 1, 0.25, 0.75, 0.25, 0.25, 0, 0], 35),  # Left
-                      ([0.25, 0.75, 0.25, 0.25, 0.75, 0.25, 0.75, 0.75], 0)]  # Middle
-            for poly, saturation in coords:
-                shade = hex_to_rgb(color)
-                shade = (clamp(i + saturation, 0, 255) for i in shade)
-                shade = rgb_to_hex(shade)
-                canvas.create_polygon([(v + (x if i%2==0 else y))*s for i, v in enumerate(poly)], outline='', fill=shade)
+            coords = [([0, 0, 0.25, 0.25, 0.75, 0.25, 1, 0], 70),  # Ülemine
+                      ([0, 1, 0.25, 0.75, 0.75, 0.75, 1, 1], -50),  # All
+                      ([1, 1, 0.75, 0.75, 0.75, 0.25, 1, 0], -30),  # Parem
+                      ([0, 1, 0.25, 0.75, 0.25, 0.25, 0, 0], 35),  # Vasak
+                      ([0.25, 0.75, 0.25, 0.25, 0.75, 0.25, 0.75, 0.75], 0)]  # Tsenter
+            for poly, varvikullastus in coords:
+                toon = hex_to_rgb(varv)
+                toon = (clamp(i + varvikullastus, 0, 255) for i in toon)
+                toon = rgb_to_hex(toon)
+                tahvel.create_polygon([(v + (x if i%2==0 else y))*s for i, v in enumerate(poly)], outline='', fill=toon)
 
-    def render(self, render_all=False):
-        cell_icon = ["#000000", "#64c9d3", "#445aa5", "#ecae35", "#eae742", "#5fbc52", "#8c5da5", "#e94138"]
-        self.clear_console()
-        for y, row in enumerate(self.matrix):
-            for x, cell in enumerate(row):
-                if render_all or self.matrix[y][x] != self.prev_matrix[y][x]:
-                    self.draw_square(x, y, cell_icon[cell])
-        canvas.update()
-        self.prev_matrix = deepcopy(self.matrix)
+    # Joonistab matriks (ainult muudatusi)
+    def render(self, render_koik=False):
+        piksel_icon = ["#000000", "#64c9d3", "#445aa5", "#ecae35", "#eae742", "#5fbc52", "#8c5da5", "#e94138"]
+        for y, row in enumerate(self.maatriks):
+            for x, piksel in enumerate(row):
+                if render_koik or self.maatriks[y][x] != self.eelmine_maatriks[y][x]:
+                    self.draw_ruut(x, y, piksel_icon[piksel])
+        tahvel.update()
+        self.eelmine_maatriks = deepcopy(self.maatriks)
 
-    def show_score(self):
-        s = self.square_size
-        canvas.create_rectangle(5*s-150, 10*s-90, 5*s+150, 10*s+90, fill="#f74f43", outline="")
-        canvas.create_text(5*s, 10*s-30, text=f"Game Over\n  Score:", font=("Terminal", 30, "bold"))
-        canvas.create_text(5*s, 10*s+50, text=self.score, font=("Terminal", 30, "bold"), anchor=tkinter.CENTER)
-        canvas.create_rectangle(5*s-120, 14*s-30, 5*s+120, 14*s+30, fill="#000000", outline="")
-        canvas.create_text(5*s, 14*s, text="Press  Space\n to restart", font=("Terminal", 20, "bold"), fill="#ffffff", anchor=tkinter.CENTER)
+    # Näitab lõpp skoor ekraanil
+    def naita_skoor(self):
+        s = self.ruut_suurus
+        tahvel.create_rectangle(5*s-150, 10*s-90, 5*s+150, 10*s+90, fill="#f74f43", outline="")
+        tahvel.create_text(5*s, 10*s-30, text=f"Game Over\n  Score:", font=("Terminal", 30, "bold"))
+        tahvel.create_text(5*s, 10*s+50, text=self.skoor, font=("Terminal", 30, "bold"), anchor=tkinter.CENTER)
+        tahvel.create_rectangle(5*s-120, 14*s-30, 5*s+120, 14*s+30, fill="#000000", outline="")
+        tahvel.create_text(5*s, 14*s, text="Press  Space\n to restart", font=("Terminal", 20, "bold"), fill="#ffffff", anchor=tkinter.CENTER)
 
     def print_debug(self):
-        print(self.curr_tetromino)
-        print(self.tetromino_position)
+        print(self.praegune_tetromino)
+        print(self.tetromino_positsioon)
 
-def clamp(value, mn, mx):
-    return max(mn, min(mx, value))
+def clamp(vaartus, mn, mx):
+    return max(mn, min(mx, vaartus))
 
 def hex_to_rgb(hex):
     h = hex.lstrip('#')
@@ -216,29 +206,28 @@ def rgb_to_hex(a):
     r, g, b = a
     return '#{:02x}{:02x}{:02x}'.format(r, g, b)
 
-def create_game():
-    global game
-    game = Tetris()
-    for tetromino in initial_tetrominos:
-        game.add_new_shape(*tetromino)
-    game.decide_next_tetromino()
-    game.render(True)
+# Kiiresti sättib kõik asjad et alustada mängu algusest
+def loo_tetris():
+    global tetris
+    tetris = Tetris()
+    for tetromino in esialgsed_tetrominod:
+        tetris.lisa_uus_kuju(*tetromino)
+    tetris.otsustada_jargmine_tetromino()
+    tetris.render(True)
 
 if __name__ == "__main__":
-    # Tkinter canvas
-    root = tkinter.Tk()
-    canvas = Canvas(root)
-    canvas.pack()
+    # Tkinter tahvel
+    raam = tkinter.Tk()
+    tahvel = Canvas(raam)
+    tahvel.pack()
 
-    # Tetris initialisation
-    initial_tetrominos = [
+    esialgsed_tetrominod = [
         [[[0, 1, 0],           #   |*|
           [1, 1, 1],           # |*|*|*|
           [0, 1, 0]], 0.8, 6], #   |*|
 
-        [[[0, 0, 0],           #
-          [1, 1, 0],           # |*|*|
-          [0, 1, 0]], 1.1, 5], #   |*|
+        [[[1, 1],              # |*|*|
+          [0, 1]], 1.1, 5],    #   |*|
 
         [[[0, 0, 0],           #
           [1, 1, 1],           # |*|*|*|
@@ -261,12 +250,38 @@ if __name__ == "__main__":
           [1, 0, 1],           # |*| |*|
           [0, 0, 0]], 1, 4]    #
     ]
-    create_game()
-    canvas.config(width=game.size[0] * game.square_size, height=game.size[1] * game.square_size)
 
+    # esialgsed_tetrominod = [
+    #     [[[0, 0, 0, 0],
+    #       [1, 1, 1, 1],
+    #       [0, 0, 0, 0],
+    #       [0, 0, 0, 0]], 1, 1],
+    #     [[[1, 0, 0],
+    #       [1, 1, 1],
+    #       [0, 0, 0]], 1, 2],
+    #     [[[0, 0, 1],
+    #       [1, 1, 1],
+    #       [0, 0, 0]], 1, 3],
+    #     [[[1, 1],
+    #       [1, 1]], 1, 4],
+    #     [[[0, 1, 1],
+    #       [1, 1, 0],
+    #       [0, 0, 0]], 1, 5],
+    #     [[[0, 1, 0],
+    #       [1, 1, 1],
+    #       [0, 0, 0]], 1, 6],
+    #     [[[1, 1, 0],
+    #       [0, 1, 1],
+    #       [0, 0, 0]], 1, 7]
+    # ]
+
+    loo_tetris()
+    tahvel.config(width=tetris.suurus[0] * tetris.ruut_suurus, height=tetris.suurus[1] * tetris.ruut_suurus)
+
+    # Kuulab keyboard moodul ja käivitab funktsioonid
     def input_set(x):
-        global next_input
-        next_input = x
+        global jarg_input
+        jarg_input = x
 
     keyboard.add_hotkey('a', lambda: input_set('a'))
     keyboard.add_hotkey('d', lambda: input_set('d'))
@@ -275,40 +290,44 @@ if __name__ == "__main__":
     keyboard.add_hotkey('q', lambda: input_set('q'))
     keyboard.add_hotkey('w', lambda: input_set('w'))
     keyboard.add_hotkey('space', lambda: input_set('space'))
-    input_commands = {'a': lambda: game.move_tetromino("L"),
-                      'd': lambda: game.move_tetromino("R"),
-                      's': lambda: game.move_tetromino("D"),
-                      'e': lambda: game.rotate_tetromino(1),
-                      'q': lambda: game.rotate_tetromino(3),
-                      'w': lambda: game.drop_tetromino()}
+    input_kased = {'a': lambda: tetris.liigu_tetromino("L"),
+                      'd': lambda: tetris.liigu_tetromino("R"),
+                      's': lambda: tetris.liigu_tetromino("D"),
+                      'e': lambda: tetris.poora_tetromino(1),
+                      'q': lambda: tetris.poora_tetromino(3),
+                      'w': lambda: tetris.lange_tetromino()}
 
     input_set("")
-    while True:  # Game loop
-        if game.state == 0 and next_input == "space":
-            create_game()
+    while True:  # Main loop
+        # Mängu algus / lähtestamine
+        if tetris.olek == 0 and jarg_input == "space":
+            loo_tetris()
 
-        if game.state == 1:
-            if next_input in ['w', 'a', 's', 'd', 'q', 'e']:
-                input_commands[next_input]()
-                next_input = ""
-                game.draw_tetromino()
-                game.render()
-                game.draw_tetromino(True)
-            if game.is_next_tick:
-                if not game.move_tetromino('D'):
-                    game.draw_tetromino()
-                    game.check_row()
-                    game.decide_next_tetromino()
-                    if game.check_collision(game.tetromino_position, game.curr_tetromino):
-                        game.show_score()
-                        game.pause()
-                game.draw_tetromino()
-                game.render()
-                game.draw_tetromino(True)
-            game.update_timer(0.5)
+        # Kui mäng töötab
+        if tetris.olek == 1:
+            # Mängu loogika
+            if jarg_input in ['w', 'a', 's', 'd', 'q', 'e']:
+                input_kased[jarg_input]()
+                jarg_input = ""
+                tetris.kuva_tetromino()
+                tetris.render()
+                tetris.kuva_tetromino(True)
+            if tetris.on_jargmine_tick:
+                if not tetris.liigu_tetromino('D'):
+                    tetris.kuva_tetromino()
+                    tetris.kontrolli_rida()
+                    tetris.otsustada_jargmine_tetromino()
+                    if tetris.kontrolli_kokkuporget(tetris.tetromino_positsioon, tetris.praegune_tetromino):
+                        tetris.naita_skoor()
+                        tetris.peata()
+                tetris.kuva_tetromino()
+                tetris.render()
+                tetris.kuva_tetromino(True)
+            tetris.uuenda_taimer(0.5)
 
-        if game.state == -1:
+        # Mängust väljuda
+        if tetris.olek == -1:
             break
 
-        canvas.update()
-    root.mainloop()
+        tahvel.update()
+    raam.mainloop()
