@@ -76,7 +76,7 @@ class Tetris:
         return self.tetrominod.pop(index)
 
     # Valib järgmine kujund, nende tõenäosuse järgi
-    def otsustada_jargmine_tetromino(self):
+    def otsusta_jargmine_tetromino(self):
         tetremino_parameetrid = random.choices(tetris.tetrominod, [i[1] for i in tetris.tetrominod], k=1)[0]
         self.praegune_tetromino = tetremino_parameetrid[0]
         self.praegune_varv = tetremino_parameetrid[2]
@@ -84,15 +84,15 @@ class Tetris:
 
     # Salvestab tetromino matriksile, kasutades positsioon, värv ja teised parameetrid
     def kuva_tetromino(self, kustuta=False):
-        for y, row in enumerate(self.praegune_tetromino):
-            for x, piksel in enumerate(row):
+        for y, rida in enumerate(self.praegune_tetromino):
+            for x, piksel in enumerate(rida):
                 if piksel != 0:
                     self.maatriks[self.tetromino_positsioon[1] + y][self.tetromino_positsioon[0] + x] = 0 if kustuta else self.praegune_varv
 
     # Vaatab kas praegune kujund põrkub milleliga matriksil
     def kontrolli_kokkuporget(self, pos, mat):
-        for y, row in enumerate(mat):
-            for x, piksel in enumerate(row):
+        for y, rida in enumerate(mat):
+            for x, piksel in enumerate(rida):
                 if piksel != 0:
                     maatriks_x, maatriks_y = pos[0] + x, pos[1] + y
                     if (maatriks_x not in range(0, self.suurus[0])) or (maatriks_y not in range(0, self.suurus[1])):
@@ -102,15 +102,15 @@ class Tetris:
         return False
 
     # Liigub selle vasakule, paremale või alla
-    def liigu_tetromino(self, direction):
+    def liigu_tetromino(self, suund):
         suuna_vektor = {'L': [-1, 0], 'R': [1, 0], 'D': [0, 1]}
 
-        uus_pos = [self.tetromino_positsioon[i] + suuna_vektor[direction][i] for i in range(2)]
+        uus_pos = [self.tetromino_positsioon[i] + suuna_vektor[suund][i] for i in range(2)]
 
         if self.kontrolli_kokkuporget(uus_pos, self.praegune_tetromino):
             return False
-        self.tetromino_positsioon[0] += suuna_vektor[direction][0]
-        self.tetromino_positsioon[1] += suuna_vektor[direction][1]
+        self.tetromino_positsioon[0] += suuna_vektor[suund][0]
+        self.tetromino_positsioon[1] += suuna_vektor[suund][1]
         return True
 
     # Liigub alla kuni kokkupõrkeni
@@ -149,10 +149,10 @@ class Tetris:
     def kontrolli_rida(self):
         kontrollitud_vahemik = range(max(self.tetromino_positsioon[1], 0),
                               min(self.tetromino_positsioon[1] + len(self.praegune_tetromino), self.suurus[1]))
-        for row in kontrollitud_vahemik:
-            if all(self.maatriks[row]):
+        for rida in kontrollitud_vahemik:
+            if all(self.maatriks[rida]):
                 self.maatriks.insert(0, [0] * self.suurus[0])
-                self.maatriks.pop(row + 1)
+                self.maatriks.pop(rida + 1)
                 self.skoor += 100
 
     # Joonistab tahvlil 2d ruutu
@@ -175,8 +175,8 @@ class Tetris:
     # Joonistab matriks (ainult muudatusi)
     def render(self, render_koik=False):
         piksel_icon = ["#000000", "#64c9d3", "#445aa5", "#ecae35", "#eae742", "#5fbc52", "#8c5da5", "#e94138"]
-        for y, row in enumerate(self.maatriks):
-            for x, piksel in enumerate(row):
+        for y, rida in enumerate(self.maatriks):
+            for x, piksel in enumerate(rida):
                 if render_koik or self.maatriks[y][x] != self.eelmine_maatriks[y][x]:
                     self.draw_ruut(x, y, piksel_icon[piksel])
         tahvel.update()
@@ -212,7 +212,7 @@ def loo_tetris():
     tetris = Tetris()
     for tetromino in esialgsed_tetrominod:
         tetris.lisa_uus_kuju(*tetromino)
-    tetris.otsustada_jargmine_tetromino()
+    tetris.otsusta_jargmine_tetromino()
     tetris.render(True)
 
 if __name__ == "__main__":
@@ -316,7 +316,7 @@ if __name__ == "__main__":
                 if not tetris.liigu_tetromino('D'):
                     tetris.kuva_tetromino()
                     tetris.kontrolli_rida()
-                    tetris.otsustada_jargmine_tetromino()
+                    tetris.otsusta_jargmine_tetromino()
                     if tetris.kontrolli_kokkuporget(tetris.tetromino_positsioon, tetris.praegune_tetromino):
                         tetris.naita_skoor()
                         tetris.peata()
